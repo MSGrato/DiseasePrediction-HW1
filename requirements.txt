@@ -3,7 +3,8 @@ numpy
 scikit-learn
 xgboost
 shap
-streamlit
+streamlit>=1.40
 matplotlib
 seaborn
 joblib
+altair>=5
