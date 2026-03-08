@@ -315,14 +315,13 @@ st.markdown("""
 # ─── Load all models once at startup ─────────────────────────────────────────
 @st.cache_resource
 def load_models():
-    from tensorflow import keras
     models = {}
     models["le"]     = joblib.load(f"{MOD}/label_encoder.pkl")
     models["lr"]     = joblib.load(f"{MOD}/logistic_regression.pkl")
     models["dt"]     = joblib.load(f"{MOD}/decision_tree.pkl")
     models["rf"]     = joblib.load(f"{MOD}/random_forest.pkl")
     models["xgb"]    = joblib.load(f"{MOD}/xgboost.pkl")
-    models["mlp"]    = keras.models.load_model(f"{MOD}/mlp_model.keras")
+    models["mlp"]    = joblib.load(f"{MOD}/mlp_sklearn.pkl")   # sklearn MLPClassifier (no TF)
     models["mlp_sc"] = joblib.load(f"{MOD}/mlp_scaler.pkl")
     models["top20"]  = joblib.load(f"{MOD}/top20_shap_features.pkl")
     models["params"] = joblib.load(f"{MOD}/best_hyperparams.pkl")
@@ -788,10 +787,10 @@ with tab5:
 
                 with st.spinner("Running inference..."):
                     if model_choice == "MLP (Neural Net)":
-                        X_sc  = M["mlp_sc"].transform(X_input)
-                        probs = M["mlp"].predict(X_sc, verbose=0)[0]
-                        pred_idx  = int(np.argmax(probs))
+                        X_sc      = M["mlp_sc"].transform(X_input)
+                        pred_idx  = int(M["mlp"].predict(X_sc)[0])
                         pred_name = le.inverse_transform([pred_idx])[0]
+                        probs     = M["mlp"].predict_proba(X_sc)[0]
                         top5_idx  = np.argsort(probs)[::-1][:5]
                         top5      = [(le.inverse_transform([i])[0], float(probs[i])) for i in top5_idx]
                     else:
