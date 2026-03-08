@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# Large model files — commit .pkl and .keras but not the raw CSVs if desired
+# (keeping CSVs since they're small and needed)
+
+# macOS
+.DS_Store
+
+# Streamlit cache
+.streamlit/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
