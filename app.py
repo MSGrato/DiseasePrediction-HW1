@@ -711,7 +711,16 @@ with tab4:
     individual prediction, grounded in cooperative game theory. For tree-based models,
     TreeExplainer computes exact SHAP values in polynomial time. Positive SHAP values push
     the model toward predicting a disease; negative values push away. Global importance is
-    the mean absolute SHAP value across all patients and all 41 classes.
+    the mean absolute SHAP value across all patients and all 41 classes. Looking at the SHAP 
+    results, coma and family history stand out as the two most influential features by a 
+    significant margin, which makes intuitive sense — these are strong, high-signal indicators 
+    that immediately narrow down the likely disease class. Stomach pain, receiving a blood 
+    transfusion, and enlarged thyroid round out the top five. For someone using this tool in a 
+    clinical intake setting, this suggests that documenting neurological status and patient 
+    history first would give the model the most useful signal. Features like yellowing of eyes 
+    and slurred speech are also notable because they point in very different directions — one 
+    toward liver-related conditions and the other toward neurological ones — which is exactly the 
+    kind of differentiation a triage system needs to route patients correctly.
     </div>
     """, unsafe_allow_html=True)
 
