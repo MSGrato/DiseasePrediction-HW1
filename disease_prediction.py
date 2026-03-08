@@ -627,12 +627,37 @@ else:
     print(f"  shap_values shape: {shap_values.shape}")
 
 # --- SHAP Bar Plot: mean absolute SHAP across all classes ---
+# Compute aggregated importance manually (mean |SHAP| over all samples & classes)
+# to avoid shap.summary_plot rendering one bar per class (41 colored bars per feature).
+if isinstance(shap_values, list):
+    global_mean_abs = np.abs(np.array(shap_values)).mean(axis=(0, 1))  # (n_features,)
+elif shap_values.ndim == 3:
+    global_mean_abs = np.abs(shap_values).mean(axis=(0, 2))            # (n_features,)
+else:
+    global_mean_abs = np.abs(shap_values).mean(axis=0)                 # (n_features,)
+
+feat_names   = list(shap_X_val.columns)
+importance_s = pd.Series(global_mean_abs, index=feat_names).nlargest(20).sort_values()
+
 fig, ax = plt.subplots(figsize=(10, 8))
-# summary_plot with plot_type="bar" averages across classes automatically
-shap.summary_plot(shap_values, shap_X_val,
-                  plot_type="bar", show=False,
-                  max_display=20)
-plt.title(f"SHAP — Mean Absolute Feature Importance ({shap_model_name})")
+fig.patch.set_facecolor("#0a0f1e")
+ax.set_facecolor("#0a0f1e")
+bars = ax.barh(importance_s.index, importance_s.values, color="#00c2cb", height=0.65)
+# Subtle gradient: fade bars from bright to dim
+for i, bar in enumerate(bars):
+    alpha = 0.5 + 0.5 * (i / len(bars))
+    bar.set_color("#00c2cb")
+    bar.set_alpha(alpha)
+ax.set_xlabel("mean(|SHAP value|)  —  average impact on model output", color="#64748b", fontsize=9)
+ax.set_title(f"SHAP — Mean Absolute Feature Importance ({shap_model_name})",
+             color="#00c2cb", fontsize=11, fontfamily="monospace", pad=12)
+ax.tick_params(axis="both", colors="#94a3b8", labelsize=9)
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+ax.spines["left"].set_color("#1e293b")
+ax.spines["bottom"].set_color("#1e293b")
+ax.xaxis.grid(True, color="#1e293b", linewidth=0.8, linestyle="--")
+ax.set_axisbelow(True)
 plt.tight_layout()
 fig.savefig(f"{FIG}/shap_bar.png", dpi=150, bbox_inches="tight")
 plt.close()
