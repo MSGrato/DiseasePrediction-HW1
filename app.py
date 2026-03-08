@@ -402,6 +402,15 @@ with tab1:
         as ground-truth labels. Each row represents a unique patient encounter; each column is a
         discrete symptom signal. A held-out test cohort of 42 records — one per disease class —
         was sequestered prior to any model development.
+        <br><br>
+        <span style="font-size:0.72rem;color:#475569;font-family:'Share Tech Mono',monospace;letter-spacing:1px;">
+        SOURCE &nbsp;—&nbsp;
+        <a href="https://www.kaggle.com/datasets/kaushil268/disease-prediction-using-machine-learning"
+           target="_blank"
+           style="color:#00c2cb;text-decoration:none;border-bottom:1px solid rgba(0,194,203,0.3);">
+        Kaggle: Disease Prediction Using Machine Learning
+        </a>
+        </span>
         </div>
         """, unsafe_allow_html=True)
 
