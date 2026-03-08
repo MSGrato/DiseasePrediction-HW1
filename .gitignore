@@ -12,8 +12,8 @@ env/
 # macOS
 .DS_Store
 
-# Streamlit cache
-.streamlit/
+# Streamlit cache only — keep config.toml tracked
+.streamlit/cache/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
