@@ -12,7 +12,25 @@ import matplotlib
 matplotlib.use("Agg")
 import joblib
 import shap
+import torch
+import torch.nn as nn
 import streamlit as st
+
+# ─── PyTorch MLP architecture (must match generate_extras.py) ────────────────
+class MLP(nn.Module):
+    def __init__(self, input_dim=132, hidden_dim=128, output_dim=41):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_dim, output_dim),
+        )
+    def forward(self, x):
+        return self.net(x)
 
 # ─── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -321,7 +339,12 @@ def load_models():
     models["dt"]     = joblib.load(f"{MOD}/decision_tree.pkl")
     models["rf"]     = joblib.load(f"{MOD}/random_forest.pkl")
     models["xgb"]    = joblib.load(f"{MOD}/xgboost.pkl")
-    models["mlp"]    = joblib.load(f"{MOD}/mlp_sklearn.pkl")   # sklearn MLPClassifier (no TF)
+    # Load PyTorch MLP
+    ckpt = torch.load(f"{MOD}/mlp_pytorch.pt", map_location="cpu", weights_only=True)
+    mlp_torch = MLP(ckpt["input_dim"], ckpt["hidden_dim"], ckpt["output_dim"])
+    mlp_torch.load_state_dict(ckpt["state_dict"])
+    mlp_torch.eval()
+    models["mlp"]    = mlp_torch
     models["mlp_sc"] = joblib.load(f"{MOD}/mlp_scaler.pkl")
     models["top20"]  = joblib.load(f"{MOD}/top20_shap_features.pkl")
     models["params"] = joblib.load(f"{MOD}/best_hyperparams.pkl")
@@ -553,10 +576,17 @@ with tab2:
          "making them the primary signal drivers in ensemble predictions."),
 
         ("mlp_training_history.png",
-         "MLP NEURAL NETWORK — TRAINING HISTORY",
+         "MLP NEURAL NETWORK — TRAINING HISTORY (PYTORCH)",
          "Loss and accuracy curves over training epochs for both the train and validation sets. "
-         "EarlyStopping (patience=10) halted training and restored the best weights. Closely tracking "
-         "curves with no divergence indicate healthy learning without significant overfitting."),
+         "EarlyStopping (patience=10) halted training at epoch 64 and restored the best weights. "
+         "Both curves converge tightly, confirming the PyTorch model learned without overfitting."),
+
+        ("violin_symptom_count.png",
+         "SYMPTOM COUNT DISTRIBUTION BY DISEASE CLASS (VIOLIN)",
+         "Each violin shows the distribution of total symptom count across all patients with that disease "
+         "(top 15 diseases by symptom-count variance). Wider sections indicate a denser cluster of patients "
+         "at that symptom count. Diseases with tall, narrow violins have consistent presentations; "
+         "wide violins indicate high variability in how patients present."),
     ]
 
     # Display two figures side-by-side where possible
@@ -631,6 +661,20 @@ with tab3:
         st.image(comp_path, use_container_width=True)
         st.markdown('<div class="fig-caption">Grouped bar chart comparing Accuracy, Macro F1, Precision, and Recall across all five models on the held-out test set. Higher is better for all metrics.</div>',
                     unsafe_allow_html=True)
+
+    st.markdown('<div class="section-header">// ROC CURVES — MACRO ONE-VS-REST (VALIDATION SET)</div>',
+                unsafe_allow_html=True)
+    roc_path = os.path.join(FIG, "roc_curves.png")
+    if os.path.exists(roc_path):
+        st.image(roc_path, use_container_width=True)
+        st.markdown('<div class="fig-caption">'
+                    'Macro-averaged one-vs-rest ROC curves for all five models evaluated on the 1,476-sample '
+                    'validation set. Each curve is the average of 41 per-class ROC curves. AUC = 1.00 for all '
+                    'models confirms that the symptom feature space creates near-perfectly separable decision '
+                    'boundaries for every disease class.'
+                    '</div>', unsafe_allow_html=True)
+    else:
+        st.warning("roc_curves.png not found — run generate_extras.py to generate it.")
 
     st.markdown('<div class="section-header">// CONFUSION MATRICES — VALIDATION SET</div>',
                 unsafe_allow_html=True)
@@ -796,10 +840,12 @@ with tab5:
 
                 with st.spinner("Running inference..."):
                     if model_choice == "MLP (Neural Net)":
-                        X_sc      = M["mlp_sc"].transform(X_input)
-                        pred_idx  = int(M["mlp"].predict(X_sc)[0])
+                        X_sc  = M["mlp_sc"].transform(X_input).astype(np.float32)
+                        with torch.no_grad():
+                            logits = M["mlp"](torch.from_numpy(X_sc))
+                            probs  = torch.softmax(logits, dim=1).numpy()[0]
+                        pred_idx  = int(np.argmax(probs))
                         pred_name = le.inverse_transform([pred_idx])[0]
-                        probs     = M["mlp"].predict_proba(X_sc)[0]
                         top5_idx  = np.argsort(probs)[::-1][:5]
                         top5      = [(le.inverse_transform([i])[0], float(probs[i])) for i in top5_idx]
                     else:

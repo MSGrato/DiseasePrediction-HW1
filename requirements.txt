@@ -8,3 +8,4 @@ matplotlib
 seaborn
 joblib
 altair>=5
+torch
