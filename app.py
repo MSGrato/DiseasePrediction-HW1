@@ -50,6 +50,9 @@ st.markdown("""
 /* ── Base & fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
 
+html {
+    font-size: 110%;
+}
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
